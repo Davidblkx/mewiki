@@ -51,8 +51,9 @@ impl Renderer {
 
     /// Returns the rendered body of the page at `path`, from the cache when it is fresh.
     ///
-    /// A cached body is stale when the page's `.md` was modified after it, so pages edited outside the app are
-    /// re-rendered on the next request. Returns `Ok(None)` when the page has no `.md` file.
+    /// A cached body is fresh only when it is strictly newer than the page's `.md`, so pages edited outside the app
+    /// are re-rendered on the next request. Equal times count as stale because Linux timestamps are coarse enough for
+    /// a page and its cache to share one. Returns `Ok(None)` when the page has no `.md` file.
     pub fn cached_body(&self, data: &DataDir, path: &PagePath) -> io::Result<Option<String>> {
         let source_file = data.page_file(path);
         let source_modified = match fs::metadata(&source_file) {
@@ -61,7 +62,7 @@ impl Renderer {
             Err(e) => return Err(e),
         };
         let cache_file = data.cached_body(path);
-        if modified(&cache_file).is_some_and(|cached| cached >= source_modified) {
+        if modified(&cache_file).is_some_and(|cached| cached > source_modified) {
             return fs::read_to_string(&cache_file).map(Some);
         }
         let source = fs::read_to_string(&source_file)?;
@@ -167,6 +168,12 @@ mod tests {
         let renderer = Renderer::new();
         renderer.cached_body(&data, &path).unwrap();
         fs::write(data.cached_body(&path), "<p>from cache</p>").unwrap();
+        fs::File::options()
+            .write(true)
+            .open(data.cached_body(&path))
+            .unwrap()
+            .set_modified(SystemTime::now() + Duration::from_secs(5))
+            .unwrap();
 
         assert_eq!(
             renderer.cached_body(&data, &path).unwrap().unwrap(),
@@ -189,6 +196,26 @@ mod tests {
             .unwrap();
 
         assert_eq!(renderer.cached_body(&data, &path).unwrap().unwrap(), "<h1>New</h1>\n");
+    }
+
+    #[test]
+    fn re_renders_when_the_cache_and_source_share_a_timestamp() {
+        let (_dir, data, path) = data_with_page("# Source");
+        let renderer = Renderer::new();
+        renderer.cached_body(&data, &path).unwrap();
+        fs::write(data.cached_body(&path), "<p>stale</p>").unwrap();
+        let same = fs::metadata(data.page_file(&path)).unwrap().modified().unwrap();
+        fs::File::options()
+            .write(true)
+            .open(data.cached_body(&path))
+            .unwrap()
+            .set_modified(same)
+            .unwrap();
+
+        assert_eq!(
+            renderer.cached_body(&data, &path).unwrap().unwrap(),
+            "<h1>Source</h1>\n"
+        );
     }
 
     #[test]

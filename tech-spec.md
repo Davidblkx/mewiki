@@ -88,7 +88,8 @@ request. That layout includes the navigation tree, the stylesheets, and the edit
 Adding the layout is a string template, so it costs almost nothing. It means a new page or a CSS change never
 requires re-rendering other pages.
 
-**A cached body is stale** when its `.md` has a newer modification time. In that case it is re-rendered on the next
+**A cached body is stale** unless it is strictly newer than its `.md`. Equal times count as stale, because Linux
+timestamps are coarse enough for a page and its cache to share one. A stale body is re-rendered on the next
 request. Pages edited outside the app therefore update on their own. The dashboard's **Rebuild** button deletes
 `cache/` and renders every page. That is needed only after an upgrade changes the renderer.
 

@@ -51,6 +51,7 @@ pub fn router(app: Arc<App>) -> Router {
         .route("/manifest.webmanifest", get(read::manifest))
         .route("/_/custom.css", get(read::custom_css))
         .route("/_/uploads/{name}", get(uploads::serve))
+        .route("/_/health", get(crate::health::handler))
         .route("/_/login", get(session::login_page).post(session::login))
         .route("/_/logout", post(session::logout))
         .merge(owner_pages)

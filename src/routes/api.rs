@@ -282,9 +282,17 @@ fn rewrite_links_everywhere(app: &App, from: &PagePath, to: &PagePath) -> io::Re
         };
         if let Some(rewritten) = page::rewrite_links(&source, from, to) {
             store::write_atomic(&file, rewritten.as_bytes())?;
+            remove_cached_body(app, &path)?;
         }
     }
     Ok(())
+}
+
+fn remove_cached_body(app: &App, path: &PagePath) -> io::Result<()> {
+    match fs::remove_file(app.data.cached_body(path)) {
+        Err(e) if e.kind() != io::ErrorKind::NotFound => Err(e),
+        _ => Ok(()),
+    }
 }
 
 fn remove_cached(app: &App, path: &PagePath) -> io::Result<()> {
