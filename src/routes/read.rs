@@ -31,6 +31,8 @@ struct PageTemplate {
 #[template(path = "group.html")]
 struct GroupTemplate {
     chrome: Chrome,
+    owner: bool,
+    path: String,
 }
 
 #[derive(Template)]
@@ -84,6 +86,8 @@ fn load(app: &App, path: &PagePath, owner: bool) -> io::Result<Response> {
     if app.data.kind(path) == Some(Kind::Group) {
         let template = GroupTemplate {
             chrome: Chrome::new(app, title, Here::Group(path), owner),
+            owner,
+            path: path.url(),
         };
         return Ok(render(StatusCode::OK, &template));
     }

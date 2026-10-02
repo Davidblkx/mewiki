@@ -1,0 +1,19 @@
+<section class="panel page-actions" id="page-actions" data-path="{{ path }}">
+  <h2>Move or delete</h2>
+  <label>Address <input id="move-to" value="{{ path }}" autocomplete="off" autocapitalize="none" spellcheck="false"></label>
+  <p class="hint">Change the address to rename or move it. Subpages go with it, and links to it are updated.</p>
+  <div class="buttons">
+    <button type="button" id="move">Move</button>
+    <button type="button" id="delete" class="danger">Delete</button>
+  </div>
+  <div class="confirm" id="confirm" role="alertdialog" aria-labelledby="confirm-text" hidden>
+    <p id="confirm-text"></p>
+    <ul id="confirm-list"></ul>
+    <div class="buttons">
+      <button type="button" id="confirm-yes" class="danger"></button>
+      <button type="button" id="confirm-no">Cancel</button>
+    </div>
+  </div>
+  <p class="error" id="actions-error" role="alert" hidden></p>
+</section>
+<script src="/_/static/actions.js" defer></script>

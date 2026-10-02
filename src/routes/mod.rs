@@ -27,8 +27,9 @@ pub fn router(app: Arc<App>) -> Router {
         .route_layer(middleware::from_fn_with_state(app.clone(), auth::require_owner_page));
     let owner_api = Router::new()
         .route("/_/api/preview", post(api::preview))
-        .route("/_/api/page", put(api::save_page))
-        .route("/_/api/page/{*path}", put(api::save_page))
+        .route("/_/api/page", put(api::save_page).delete(api::delete_page))
+        .route("/_/api/page/{*path}", put(api::save_page).delete(api::delete_page))
+        .route("/_/api/move", post(api::move_page))
         .route("/_/api/pages", get(api::pages))
         .route("/_/api/custom-css", put(api::save_custom_css))
         .route("/_/api/rebuild", post(api::rebuild))

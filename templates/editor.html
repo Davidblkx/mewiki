@@ -33,4 +33,5 @@
     <div class="buttons"><button value="cancel">Close</button></div>
   </form>
 </dialog>
+{% if !creating && path != "/" %}{% include "page_actions.html" %}{% endif %}
 {% endblock %}

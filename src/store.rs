@@ -294,6 +294,43 @@ fn scan_folder(data: &DataDir, parent: &PagePath, parent_protected: bool) -> io:
     Ok(nodes)
 }
 
+/// Returns every page and group below `path`, outermost first, not including `path` itself.
+pub fn subtree(data: &DataDir, path: &PagePath) -> io::Result<Vec<PagePath>> {
+    let mut found = Vec::new();
+    collect_subtree(data, path, &mut found)?;
+    Ok(found)
+}
+
+fn collect_subtree(data: &DataDir, parent: &PagePath, found: &mut Vec<PagePath>) -> io::Result<()> {
+    let folder = data.page_folder(parent);
+    let entries = match fs::read_dir(&folder) {
+        Ok(entries) => entries,
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(e),
+    };
+    let mut names = std::collections::BTreeSet::new();
+    for entry in entries {
+        let entry = entry?;
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else { continue };
+        let name = if entry.file_type()?.is_dir() {
+            name
+        } else {
+            let Some(stem) = name.strip_suffix(".md") else { continue };
+            stem
+        };
+        if is_valid_name(name) && !(parent.is_home() && name == HOME_NAME) {
+            names.insert(name.to_owned());
+        }
+    }
+    for name in names {
+        let child = parent.child(&name);
+        found.push(child.clone());
+        collect_subtree(data, &child, found)?;
+    }
+    Ok(())
+}
+
 /// Writes `contents` to `path` so a crash can never leave a half-written file.
 ///
 /// The data goes to `.<name>.tmp` in the same folder first and is then renamed over `path`. The parent folder is
@@ -462,6 +499,25 @@ mod tests {
             Some("Chanterelle")
         );
         assert_eq!(tree.title(&PagePath::parse("missing").unwrap()), None);
+    }
+
+    #[test]
+    fn lists_the_subtree_below_a_page() {
+        let (_dir, data) = data_with(&[
+            ("a.md", ""),
+            ("a/b.md", ""),
+            ("a/b/c.md", ""),
+            ("a/g/d.md", ""),
+            ("z.md", ""),
+        ]);
+        let urls: Vec<String> = subtree(&data, &PagePath::parse("a").unwrap())
+            .unwrap()
+            .iter()
+            .map(PagePath::url)
+            .collect();
+
+        assert_eq!(urls, ["/a/b", "/a/b/c", "/a/g", "/a/g/d"]);
+        assert!(subtree(&data, &PagePath::parse("z").unwrap()).unwrap().is_empty());
     }
 
     #[test]

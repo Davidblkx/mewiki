@@ -30,11 +30,7 @@ impl Renderer {
     /// Builds a renderer with tables, task lists, strikethrough and autolinks on, raw HTML escaped, and code
     /// highlighted with CSS classes so the theme lives in the stylesheet (R01, R02).
     pub fn new() -> Self {
-        let mut options = Options::default();
-        options.extension.table = true;
-        options.extension.tasklist = true;
-        options.extension.strikethrough = true;
-        options.extension.autolink = true;
+        let mut options = markdown_options();
         options.render.escape = true;
         Renderer {
             highlighter: SyntectAdapterBuilder::new().css().build(),
@@ -73,6 +69,16 @@ impl Renderer {
         store::write_atomic(&cache_file, html.as_bytes())?;
         Ok(Some(html))
     }
+}
+
+/// Returns the parsing options every part of the app uses, so links are found wherever the renderer finds them.
+pub fn markdown_options() -> Options<'static> {
+    let mut options = Options::default();
+    options.extension.table = true;
+    options.extension.tasklist = true;
+    options.extension.strikethrough = true;
+    options.extension.autolink = true;
+    options
 }
 
 fn modified(path: &std::path::Path) -> Option<SystemTime> {

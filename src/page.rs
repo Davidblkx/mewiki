@@ -6,6 +6,7 @@ use std::io;
 use comrak::nodes::{AstNode, NodeValue};
 use comrak::{Arena, Options, parse_document};
 
+use crate::render::markdown_options;
 use crate::store::{DataDir, PagePath};
 
 /// The `---` block at the top of a page, kept line by line so keys the app doesn't know survive a save.
@@ -99,6 +100,114 @@ pub fn split_front_matter(source: &str) -> (FrontMatter, &str) {
         lines.push(trimmed.to_owned());
     }
     (FrontMatter::default(), source)
+}
+
+/// Points every link to `from`, or to a page under it, at the same place under `to` (R07).
+///
+/// Only absolute wiki links are rewritten: inline links and images found by the Markdown parser, so text in code
+/// blocks that only looks like a link is left alone, and reference definitions such as `[x]: /path`. Fragments and
+/// queries are kept. Returns `None` when nothing changed.
+pub fn rewrite_links(source: &str, from: &PagePath, to: &PagePath) -> Option<String> {
+    let (_, body) = split_front_matter(source);
+    let body_offset = source.len() - body.len();
+    let line_starts: Vec<usize> = std::iter::once(0)
+        .chain(body.match_indices('\n').map(|(i, _)| i + 1))
+        .collect();
+    let byte_at = |line: usize, column: usize| line_starts.get(line.checked_sub(1)?).map(|start| start + column - 1);
+
+    let mut edits: Vec<(usize, usize, String)> = Vec::new();
+    let arena = Arena::new();
+    let root = parse_document(&arena, body, &markdown_options());
+    for node in root.descendants() {
+        let ast = node.data.borrow();
+        let (NodeValue::Link(link) | NodeValue::Image(link)) = &ast.value else {
+            continue;
+        };
+        let Some(new_url) = remap(&link.url, from, to) else {
+            continue;
+        };
+        let pos = ast.sourcepos;
+        let (Some(start), Some(end)) = (
+            byte_at(pos.start.line, pos.start.column),
+            byte_at(pos.end.line, pos.end.column),
+        ) else {
+            continue;
+        };
+        let Some(span) = body.get(start..(end + 1).min(body.len())) else {
+            continue;
+        };
+        if let Some(at) = span.rfind(&format!("({}", link.url)) {
+            edits.push((start + at + 1, link.url.len(), new_url));
+        }
+    }
+    edits.extend(reference_definition_edits(body, from, to));
+    if edits.is_empty() {
+        return None;
+    }
+
+    edits.sort_by_key(|(at, _, _)| std::cmp::Reverse(*at));
+    let mut rewritten = body.to_owned();
+    for (at, len, new_url) in edits {
+        rewritten.replace_range(at..at + len, &new_url);
+    }
+    Some(format!("{}{rewritten}", &source[..body_offset]))
+}
+
+fn reference_definition_edits(body: &str, from: &PagePath, to: &PagePath) -> Vec<(usize, usize, String)> {
+    let mut edits = Vec::new();
+    let mut fence: Option<&str> = None;
+    let mut offset = 0;
+    for line in body.split_inclusive('\n') {
+        let start = offset;
+        offset += line.len();
+        let trimmed = line.trim_start();
+        if let Some(open) = fence {
+            if trimmed.starts_with(open) {
+                fence = None;
+            }
+            continue;
+        }
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            fence = Some(&trimmed[..3]);
+            continue;
+        }
+        let indent = line.len() - trimmed.len();
+        if indent > 3 || !trimmed.starts_with('[') {
+            continue;
+        }
+        let Some(close) = trimmed.find("]:") else {
+            continue;
+        };
+        let after = &trimmed[close + 2..];
+        let destination_start = after.len() - after.trim_start().len();
+        let bracket = usize::from(after.trim_start().starts_with('<'));
+        let destination = &after.trim_start()[bracket..];
+        let url_len = destination
+            .find(|c: char| c.is_whitespace() || c == '>')
+            .unwrap_or(destination.len());
+        let url = &destination[..url_len];
+        if let Some(new_url) = remap(url, from, to) {
+            let at = start + indent + close + 2 + destination_start + bracket;
+            edits.push((at, url.len(), new_url));
+        }
+    }
+    edits
+}
+
+fn remap(url: &str, from: &PagePath, to: &PagePath) -> Option<String> {
+    let split = url.find(['#', '?']).unwrap_or(url.len());
+    let (path, rest) = url.split_at(split);
+    let from_url = from.url();
+    let tail = if path == from_url {
+        ""
+    } else {
+        let tail = path.strip_prefix(&from_url)?;
+        if !tail.starts_with('/') {
+            return None;
+        }
+        tail
+    };
+    Some(format!("{}{tail}{rest}", to.url()))
 }
 
 /// Returns the page's title: the text of its first level-1 heading, or [`title_from_name`] when it has none.
@@ -300,6 +409,70 @@ protected: true
 
         assert!(is_protected(&data, &PagePath::home()).unwrap());
         assert!(!is_protected(&data, &PagePath::parse("top").unwrap()).unwrap());
+    }
+
+    fn rewrite(source: &str, from: &str, to: &str) -> Option<String> {
+        rewrite_links(source, &PagePath::parse(from).unwrap(), &PagePath::parse(to).unwrap())
+    }
+
+    #[test]
+    fn rewrites_links_to_the_moved_page() {
+        assert_eq!(
+            rewrite("See [it](/mushroom) and [x](/other).", "mushroom", "fungi").as_deref(),
+            Some("See [it](/fungi) and [x](/other).")
+        );
+    }
+
+    #[test]
+    fn rewrites_links_to_subpages_and_keeps_fragments() {
+        let source = "[a](/mushroom/chanterelle#season) [b](/mushroom?x) ![c](/mushroom/pic \"Title\")";
+        assert_eq!(
+            rewrite(source, "mushroom", "food/fungi").as_deref(),
+            Some("[a](/food/fungi/chanterelle#season) [b](/food/fungi?x) ![c](/food/fungi/pic \"Title\")")
+        );
+    }
+
+    #[test]
+    fn leaves_pages_whose_names_only_start_the_same() {
+        assert_eq!(
+            rewrite("[a](/mushrooms) [b](/mushroom-soup)", "mushroom", "fungi"),
+            None
+        );
+    }
+
+    #[test]
+    fn leaves_code_that_only_looks_like_a_link() {
+        let source = "`[a](/mushroom)`\n\n```\n[b](/mushroom)\n[c]: /mushroom\n```\n\n[d](/mushroom)\n";
+        assert_eq!(
+            rewrite(source, "mushroom", "fungi").as_deref(),
+            Some("`[a](/mushroom)`\n\n```\n[b](/mushroom)\n[c]: /mushroom\n```\n\n[d](/fungi)\n")
+        );
+    }
+
+    #[test]
+    fn rewrites_reference_definitions() {
+        let source = "[a][ref] and [b]\n\n[ref]: /mushroom/chanterelle \"Title\"\n[b]: </mushroom>\n";
+        assert_eq!(
+            rewrite(source, "mushroom", "fungi").as_deref(),
+            Some("[a][ref] and [b]\n\n[ref]: /fungi/chanterelle \"Title\"\n[b]: </fungi>\n")
+        );
+    }
+
+    #[test]
+    fn rewrites_links_inside_tables_and_lists_and_keeps_front_matter() {
+        let source = "---\nprotected: true\n---\n| [a](/mushroom) |\n|---|\n\n- [b](/mushroom)\n";
+        assert_eq!(
+            rewrite(source, "mushroom", "fungi").as_deref(),
+            Some("---\nprotected: true\n---\n| [a](/fungi) |\n|---|\n\n- [b](/fungi)\n")
+        );
+    }
+
+    #[test]
+    fn rewrites_several_links_on_one_line_with_non_ascii_text() {
+        assert_eq!(
+            rewrite("\u{c9}t\u{e9} [c\u{e8}pe](/a) puis [bolet](/a/b)", "a", "z").as_deref(),
+            Some("\u{c9}t\u{e9} [c\u{e8}pe](/z) puis [bolet](/z/b)")
+        );
     }
 
     #[test]

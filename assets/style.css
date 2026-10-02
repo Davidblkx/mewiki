@@ -211,6 +211,11 @@ dialog::backdrop { background: rgb(0 0 0 / 0.4); }
 .picker li button:hover, .picker li button:focus-visible { background: var(--panel); }
 .picker small { display: block; color: var(--muted); }
 
+.buttons button.danger { border-color: var(--hl-keyword); color: var(--hl-keyword); }
+.page-actions { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.confirm { margin-top: 1rem; padding: 0.75rem 1rem; border: 1px solid var(--hl-keyword); border-radius: 6px; }
+.confirm ul { margin: 0.5rem 0; }
+
 [hidden] { display: none !important; }
 
 @media (max-width: 800px) {
