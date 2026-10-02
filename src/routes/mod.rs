@@ -4,14 +4,16 @@ mod api;
 mod edit;
 mod read;
 mod session;
+mod uploads;
 
 use std::sync::Arc;
 
 use axum::Router;
+use axum::extract::DefaultBodyLimit;
 use axum::http::{HeaderValue, StatusCode, header};
 use axum::middleware;
 use axum::response::{Html, IntoResponse, Response};
-use axum::routing::{get, post, put};
+use axum::routing::{delete, get, post, put};
 
 use crate::App;
 use crate::auth::{self, percent_encode};
@@ -33,12 +35,18 @@ pub fn router(app: Arc<App>) -> Router {
         .route("/_/api/pages", get(api::pages))
         .route("/_/api/custom-css", put(api::save_custom_css))
         .route("/_/api/rebuild", post(api::rebuild))
+        .route(
+            "/_/api/uploads",
+            post(uploads::upload).layer(DefaultBodyLimit::max(uploads::MAX_UPLOAD_BYTES)),
+        )
+        .route("/_/api/uploads/{name}", delete(uploads::delete))
         .route_layer(middleware::from_fn_with_state(app.clone(), auth::require_owner_api));
     Router::new()
         .route("/", get(read::home))
         .route("/{*path}", get(read::page))
         .route("/_/static/{*file}", get(read::static_file))
         .route("/_/custom.css", get(read::custom_css))
+        .route("/_/uploads/{name}", get(uploads::serve))
         .route("/_/login", get(session::login_page).post(session::login))
         .route("/_/logout", post(session::logout))
         .merge(owner_pages)

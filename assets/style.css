@@ -216,6 +216,18 @@ dialog::backdrop { background: rgb(0 0 0 / 0.4); }
 .confirm { margin-top: 1rem; padding: 0.75rem 1rem; border: 1px solid var(--hl-keyword); border-radius: 6px; }
 .confirm ul { margin: 0.5rem 0; }
 
+.uploads { list-style: none; padding: 0; }
+.uploads li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; padding: 0.35rem 0; }
+.uploads li a { overflow-wrap: anywhere; }
+.delete-upload {
+    margin-left: auto;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--panel);
+    cursor: pointer;
+}
+
 [hidden] { display: none !important; }
 
 @media (max-width: 800px) {

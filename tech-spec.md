@@ -120,7 +120,7 @@ would change the tree or the styles in every page, so the whole wiki would be re
 | `PUT /_/api/page/{*path}` | owner | save `{ markdown, protected }`; create with `If-None-Match: *` |
 | `DELETE /_/api/page/{*path}?subpages=true` | owner | delete a page or group, and its subpages |
 | `POST /_/api/move` | owner | rename or move `{ from, to, make_public }` |
-| `POST /_/api/uploads`, `DELETE /_/api/uploads/{name}` | owner | upload, delete |
+| `POST /_/api/uploads?name=`, `DELETE /_/api/uploads/{name}` | owner | upload the raw body, delete |
 | `PUT /_/api/custom-css`, `POST /_/api/rebuild` | owner | dashboard actions |
 | `GET /_/api/pages` | owner | every page's URL and title, for sync (R04) and the link picker |
 

@@ -126,6 +126,30 @@ document.getElementById("link-button").addEventListener("click", async () => {
 });
 filter.addEventListener("input", renderPicker);
 
+const uploadFile = document.getElementById("upload-file");
+document.getElementById("upload-button").addEventListener("click", () => {
+    selection = { start: markdown.selectionStart, end: markdown.selectionEnd };
+    uploadFile.click();
+});
+uploadFile.addEventListener("change", async () => {
+    const file = uploadFile.files[0];
+    uploadFile.value = "";
+    if (!file) return;
+    showError("");
+    if (file.size > 2 * 1024 * 1024) {
+        showError(`${file.name} is larger than 2 MB.`);
+        return;
+    }
+    const response = await fetch(`/_/api/uploads?name=${encodeURIComponent(file.name)}`, { method: "POST", body: file });
+    if (!response.ok) {
+        showError(response.status === 413 ? `${file.name} is larger than 2 MB.` : `Uploading failed (${response.status}).`);
+        return;
+    }
+    showTab("source");
+    markdown.setRangeText((await response.json()).markdown, selection.start, selection.end, "end");
+    markdown.focus();
+});
+
 form.addEventListener("submit", async (event) => {
     event.preventDefault();
     showError("");

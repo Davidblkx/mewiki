@@ -11,6 +11,24 @@
   </div>
 </section>
 <section class="panel">
+  <h2>Uploads</h2>
+  {% if uploads.is_empty() %}
+  <p class="hint">Nothing uploaded yet. Upload files from the editor.</p>
+  {% else %}
+  <p class="hint">Deleting an upload doesn't check whether a page still uses it. Pages that do show a broken image
+    or link.</p>
+  <ul class="uploads">
+    {% for upload in uploads %}
+    <li data-name="{{ upload.name }}">
+      <a href="/_/uploads/{{ upload.name }}">{{ upload.name }}</a>
+      <span class="hint">{{ upload.size_label() }}{% if !upload.used %} · unused{% endif %}</span>
+      <button type="button" class="delete-upload">Delete</button>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+<section class="panel">
   <h2>Rebuild</h2>
   <p class="hint">Renders every page again and rescans the tree. Use it after an upgrade, or after moving files outside
     the app.</p>

@@ -26,13 +26,17 @@ pub struct ApiError {
 }
 
 impl ApiError {
-    fn new(status: StatusCode, message: impl Into<String>) -> Self {
+    pub(super) fn new(status: StatusCode, message: impl Into<String>) -> Self {
         ApiError {
             status,
             message: message.into(),
             confirm: None,
             pages: Vec::new(),
         }
+    }
+
+    pub(super) fn not_found(message: impl Into<String>) -> Self {
+        Self::new(StatusCode::NOT_FOUND, message)
     }
 
     fn confirm(confirm: &'static str, message: impl Into<String>, pages: &[PagePath]) -> Self {

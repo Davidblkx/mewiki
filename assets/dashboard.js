@@ -23,6 +23,20 @@ saveCss.addEventListener("click", () =>
     ),
 );
 
+for (const button of document.querySelectorAll(".delete-upload")) {
+    button.addEventListener("click", async () => {
+        const item = button.closest("li");
+        button.disabled = true;
+        const response = await fetch(`/_/api/uploads/${encodeURIComponent(item.dataset.name)}`, { method: "DELETE" });
+        if (response.ok) {
+            item.remove();
+        } else {
+            button.disabled = false;
+            button.textContent = `Failed (${response.status})`;
+        }
+    });
+}
+
 const rebuild = document.getElementById("rebuild");
 rebuild.addEventListener("click", () =>
     call(

@@ -10,6 +10,7 @@ use axum::http::StatusCode;
 use axum::response::Response;
 use serde::Deserialize;
 
+use super::uploads::{self, UploadEntry};
 use super::{Chrome, Here, read, render, server_error};
 use crate::App;
 use crate::page;
@@ -33,6 +34,7 @@ struct EditorTemplate {
 struct DashboardTemplate {
     chrome: Chrome,
     custom_css: String,
+    uploads: Vec<UploadEntry>,
 }
 
 /// Which folder a new page goes in.
@@ -106,12 +108,17 @@ pub async fn new_page(State(app): State<Arc<App>>, Query(query): Query<NewQuery>
     render(StatusCode::OK, &template)
 }
 
-/// `GET /_/dashboard`: custom CSS and Rebuild.
+/// `GET /_/dashboard`: custom CSS, Rebuild, and the list of uploads.
 pub async fn dashboard(State(app): State<Arc<App>>) -> Response {
     let custom_css = fs::read_to_string(app.data.config().join("custom.css")).unwrap_or_default();
+    let uploads = match uploads::list(&app) {
+        Ok(uploads) => uploads,
+        Err(e) => return server_error(e),
+    };
     let template = DashboardTemplate {
         chrome: Chrome::new(&app, "Dashboard", Here::Other, true),
         custom_css,
+        uploads,
     };
     render(StatusCode::OK, &template)
 }
