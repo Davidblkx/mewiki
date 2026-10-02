@@ -1,0 +1,6 @@
+{% extends "layout.html" %}
+{% block head %}{% if has_diagrams %}
+<script src="/_/static/vendor/mermaid.min.js" defer></script>
+<script src="/_/static/diagrams.js" defer></script>
+{% endif %}{% endblock %}
+{% block main %}<article class="page">{{ body|safe }}</article>{% endblock %}

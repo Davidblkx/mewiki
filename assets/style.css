@@ -1,0 +1,150 @@
+:root {
+    --bg: #fbfaf8;
+    --fg: #1f2328;
+    --muted: #656d76;
+    --line: #d8dee4;
+    --accent: #0b62c4;
+    --panel: #f2f0ec;
+    --code-bg: #f3f2ef;
+    --hl-comment: #6e7781;
+    --hl-keyword: #cf222e;
+    --hl-string: #0a3069;
+    --hl-number: #0550ae;
+    --hl-function: #8250df;
+    --hl-type: #953800;
+    color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #16181c;
+        --fg: #e6e8eb;
+        --muted: #9aa3ad;
+        --line: #30363d;
+        --accent: #6cb6ff;
+        --panel: #1d2026;
+        --code-bg: #1f232a;
+        --hl-comment: #8b949e;
+        --hl-keyword: #ff7b72;
+        --hl-string: #a5d6ff;
+        --hl-number: #79c0ff;
+        --hl-function: #d2a8ff;
+        --hl-type: #ffa657;
+        color-scheme: dark;
+    }
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+a { color: var(--accent); }
+
+.top {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+}
+
+.brand { font-weight: 600; color: var(--fg); text-decoration: none; }
+
+.nav-toggle { position: absolute; opacity: 0; pointer-events: none; }
+
+.nav-button {
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.nav-toggle:focus-visible + .top .nav-button { outline: 2px solid var(--accent); }
+
+.shell { display: flex; align-items: flex-start; }
+
+.tree {
+    flex: 0 0 16rem;
+    padding: 1rem;
+    border-right: 1px solid var(--line);
+    min-height: calc(100vh - 3rem);
+    font-size: 0.95rem;
+}
+
+.tree ul { list-style: none; margin: 0; padding: 0; }
+.tree ul ul { padding-left: 1rem; }
+.tree li { margin: 0.15rem 0; }
+.tree a { color: var(--fg); text-decoration: none; }
+.tree a:hover { color: var(--accent); }
+.tree a[aria-current="page"] { font-weight: 600; color: var(--accent); }
+.tree a.group { color: var(--muted); }
+.tree .lock { font-size: 0.8em; margin-left: 0.25rem; }
+
+main {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 1rem 2rem 3rem;
+    max-width: 52rem;
+}
+
+.page img { max-width: 100%; height: auto; }
+
+.page table {
+    display: block;
+    overflow-x: auto;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.page th, .page td { border: 1px solid var(--line); padding: 0.35rem 0.6rem; text-align: left; }
+.page th { background: var(--panel); }
+
+.page code { background: var(--code-bg); padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.9em; }
+
+.page pre {
+    background: var(--code-bg);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    line-height: 1.45;
+}
+
+.page pre code { background: none; padding: 0; }
+.page pre.mermaid { background: none; text-align: center; }
+
+.page ul:has(> li > input[type="checkbox"]) { list-style: none; padding-left: 1.2rem; }
+.page li > input[type="checkbox"] { margin: 0 0.4rem 0 -1.2rem; }
+
+.syntax-highlighting .comment { color: var(--hl-comment); font-style: italic; }
+.syntax-highlighting .keyword,
+.syntax-highlighting .storage { color: var(--hl-keyword); }
+.syntax-highlighting .string { color: var(--hl-string); }
+.syntax-highlighting .constant { color: var(--hl-number); }
+.syntax-highlighting .entity.name.function,
+.syntax-highlighting .support.function { color: var(--hl-function); }
+.syntax-highlighting .entity.name.type,
+.syntax-highlighting .support.type { color: var(--hl-type); }
+
+@media (max-width: 800px) {
+    .shell { display: block; }
+    .tree {
+        display: none;
+        min-height: 0;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+    }
+    .nav-toggle:checked ~ .shell .tree { display: block; }
+    main { padding: 1rem 1rem 3rem; }
+}
+
+@media (min-width: 801px) {
+    .nav-button { display: none; }
+}

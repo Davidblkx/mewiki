@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }} · me-wiki</title>
+<link rel="stylesheet" href="/_/static/style.css">
+<link rel="stylesheet" href="/_/custom.css">
+{% block head %}{% endblock %}
+</head>
+<body>
+<input type="checkbox" id="nav-toggle" class="nav-toggle">
+<header class="top">
+  <label for="nav-toggle" class="nav-button" title="Pages">&#9776;</label>
+  <a class="brand" href="/">me-wiki</a>
+</header>
+<div class="shell">
+  <nav class="tree" aria-label="Pages">{{ tree|safe }}</nav>
+  <main>{% block main %}{% endblock %}</main>
+</div>
+</body>
+</html>
