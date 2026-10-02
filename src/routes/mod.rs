@@ -6,6 +6,8 @@ mod read;
 mod session;
 mod uploads;
 
+pub use read::asset_version;
+
 use std::sync::Arc;
 
 use axum::Router;
@@ -45,6 +47,8 @@ pub fn router(app: Arc<App>) -> Router {
         .route("/", get(read::home))
         .route("/{*path}", get(read::page))
         .route("/_/static/{*file}", get(read::static_file))
+        .route("/sw.js", get(read::service_worker))
+        .route("/manifest.webmanifest", get(read::manifest))
         .route("/_/custom.css", get(read::custom_css))
         .route("/_/uploads/{name}", get(uploads::serve))
         .route("/_/login", get(session::login_page).post(session::login))

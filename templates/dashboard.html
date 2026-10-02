@@ -1,7 +1,18 @@
 {% extends "layout.html" %}
-{% block head %}<script src="/_/static/dashboard.js" defer></script>{% endblock %}
+{% block head %}
+<script src="/_/static/dashboard.js" defer></script>
+<script src="/_/static/sync.js" defer></script>
+{% endblock %}
 {% block main %}
 <h1>Dashboard</h1>
+<section class="panel">
+  <h2>Offline</h2>
+  <p class="hint">Pages you open are saved on this device as you go. Sync saves every page now, protected ones
+    included. Logging out doesn't remove them.</p>
+  <div class="buttons">
+    <button type="button" id="sync">Sync</button><span class="status" id="sync-status" role="status"></span>
+  </div>
+</section>
 <section class="panel">
   <h2>Custom CSS</h2>
   <p class="hint">Applied to every page, after the built-in styles.</p>

@@ -2,13 +2,14 @@
 
 use std::fs;
 use std::io;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use askama::Template;
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use rust_embed::Embed;
+use sha2::{Digest, Sha256};
 
 use super::{Chrome, Here, render, server_error};
 use crate::App;
@@ -114,6 +115,66 @@ pub async fn static_file(Path(file): Path<String>) -> Response {
             (header::CACHE_CONTROL, "no-cache".to_owned()),
         ],
         asset.data,
+    )
+        .into_response()
+}
+
+/// Returns a short hash of every embedded file, so the service worker's static cache changes whenever any of them
+/// does.
+pub fn asset_version() -> &'static str {
+    static VERSION: OnceLock<String> = OnceLock::new();
+    VERSION.get_or_init(|| {
+        let mut names: Vec<_> = Assets::iter().collect();
+        names.sort();
+        let mut hash = Sha256::new();
+        for name in names {
+            hash.update(name.as_bytes());
+            if let Some(file) = Assets::get(&name) {
+                hash.update(&file.data);
+            }
+        }
+        hash.finalize().iter().take(6).map(|b| format!("{b:02x}")).collect()
+    })
+}
+
+/// `GET /sw.js`: the service worker, served from the root so it controls every page (R04).
+pub async fn service_worker() -> Response {
+    let Some(file) = Assets::get("sw.js") else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let script = String::from_utf8_lossy(&file.data).replace("__VERSION__", asset_version());
+    (
+        [
+            (header::CONTENT_TYPE, "text/javascript; charset=utf-8"),
+            (header::CACHE_CONTROL, "no-cache"),
+        ],
+        script,
+    )
+        .into_response()
+}
+
+/// `GET /manifest.webmanifest`: what the browser needs to install the wiki as an app (R04).
+pub async fn manifest() -> Response {
+    let manifest = serde_json::json!({
+        "name": "me-wiki",
+        "short_name": "me-wiki",
+        "start_url": "/",
+        "scope": "/",
+        "display": "standalone",
+        "background_color": "#fbfaf8",
+        "theme_color": "#0b62c4",
+        "icons": [
+            { "src": "/_/static/icon-192.png", "sizes": "192x192", "type": "image/png" },
+            { "src": "/_/static/icon-512.png", "sizes": "512x512", "type": "image/png" },
+            { "src": "/_/static/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+        ],
+    });
+    (
+        [
+            (header::CONTENT_TYPE, "application/manifest+json"),
+            (header::CACHE_CONTROL, "no-cache"),
+        ],
+        manifest.to_string(),
     )
         .into_response()
 }
