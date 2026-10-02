@@ -18,7 +18,7 @@ async fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let app = match App::new(DataDir::new(&config.data_dir)) {
+    let app = match App::new(DataDir::new(&config.data_dir), &config.password, config.cookie_secure) {
         Ok(app) => app,
         Err(e) => {
             tracing::error!("can't open the data folder {}: {e}", config.data_dir.display());

@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% block head %}<script src="/_/static/dashboard.js" defer></script>{% endblock %}
+{% block main %}
+<h1>Dashboard</h1>
+<section class="panel">
+  <h2>Custom CSS</h2>
+  <p class="hint">Applied to every page, after the built-in styles.</p>
+  <textarea id="custom-css" spellcheck="false">{{ custom_css }}</textarea>
+  <div class="buttons">
+    <button type="button" id="save-css">Save CSS</button><span class="status" id="css-status" role="status"></span>
+  </div>
+</section>
+<section class="panel">
+  <h2>Rebuild</h2>
+  <p class="hint">Renders every page again and rescans the tree. Use it after an upgrade, or after moving files outside
+    the app.</p>
+  <div class="buttons">
+    <button type="button" id="rebuild">Rebuild</button><span class="status" id="rebuild-status" role="status"></span>
+  </div>
+</section>
+{% endblock %}

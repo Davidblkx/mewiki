@@ -310,6 +310,34 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> io::Result<()> {
     fs::rename(&temp, path)
 }
 
+/// Deletes `.*.tmp` files left under `pages/`, `uploads/` and `config/` by a crash during [`write_atomic`].
+///
+/// Returns how many it removed.
+pub fn remove_temp_files(data: &DataDir) -> io::Result<usize> {
+    let mut removed = 0;
+    for dir in [data.pages(), data.uploads(), data.config()] {
+        removed += remove_temp_files_in(&dir)?;
+    }
+    Ok(removed)
+}
+
+fn remove_temp_files_in(dir: &Path) -> io::Result<usize> {
+    let mut removed = 0;
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if file_type.is_dir() {
+            removed += remove_temp_files_in(&entry.path())?;
+        } else if name.starts_with('.') && name.ends_with(".tmp") {
+            fs::remove_file(entry.path())?;
+            removed += 1;
+        }
+    }
+    Ok(removed)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -434,6 +462,18 @@ mod tests {
             Some("Chanterelle")
         );
         assert_eq!(tree.title(&PagePath::parse("missing").unwrap()), None);
+    }
+
+    #[test]
+    fn removes_leftover_temp_files_only() {
+        let (_dir, data) = data_with(&[("a.md", "# A"), ("a/.b.md.tmp", "half"), (".c.md.tmp", "half")]);
+        fs::write(data.uploads().join(".photo.jpg.tmp"), "half").unwrap();
+        fs::write(data.uploads().join("photo.tmp"), "kept").unwrap();
+
+        assert_eq!(remove_temp_files(&data).unwrap(), 3);
+        assert!(data.pages().join("a.md").exists());
+        assert!(data.uploads().join("photo.tmp").exists());
+        assert!(!data.pages().join("a/.b.md.tmp").exists());
     }
 
     #[test]

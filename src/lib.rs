@@ -1,5 +1,6 @@
 //! me-wiki: a personal, self-hosted wiki that keeps its pages as Markdown files on disk.
 
+pub mod auth;
 pub mod config;
 pub mod page;
 pub mod render;
@@ -9,6 +10,7 @@ pub mod store;
 use std::io;
 use std::sync::{Arc, RwLock};
 
+use auth::Auth;
 use render::Renderer;
 use store::{DataDir, Tree};
 
@@ -20,18 +22,39 @@ pub struct App {
     pub renderer: Renderer,
     /// The navigation tree, rebuilt after every change made through the app.
     pub tree: RwLock<Tree>,
+    /// The password and session checks.
+    pub auth: Auth,
+    /// Held by every change to the data folder, so a move never runs at the same time as a save.
+    pub writes: tokio::sync::Mutex<()>,
 }
 
 impl App {
-    /// Creates the data folder's missing parts and scans the tree.
-    pub fn new(data: DataDir) -> io::Result<Arc<Self>> {
+    /// Creates the data folder's missing parts, removes temporary files a crash left behind, loads or creates the
+    /// secret key, and scans the tree.
+    ///
+    /// `cookie_secure` adds the `Secure` attribute to session cookies.
+    pub fn new(data: DataDir, password: &str, cookie_secure: bool) -> io::Result<Arc<Self>> {
         data.init()?;
+        let removed = store::remove_temp_files(&data)?;
+        if removed > 0 {
+            tracing::warn!("removed {removed} temporary files left by an interrupted write");
+        }
+        let secret = Auth::load_or_create_secret(&data.config())?;
         let tree = Tree::scan(&data)?;
         Ok(Arc::new(App {
             data,
             renderer: Renderer::new(),
             tree: RwLock::new(tree),
+            auth: Auth::new(&secret, password, cookie_secure),
+            writes: tokio::sync::Mutex::new(()),
         }))
+    }
+
+    /// Rescans `pages/` and replaces the tree.
+    pub fn rebuild_tree(&self) -> io::Result<()> {
+        let tree = Tree::scan(&self.data)?;
+        *self.tree.write().unwrap_or_else(|e| e.into_inner()) = tree;
+        Ok(())
     }
 
     /// Returns a copy of the current tree.

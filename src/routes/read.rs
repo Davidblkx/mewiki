@@ -6,11 +6,11 @@ use std::sync::Arc;
 
 use askama::Template;
 use axum::extract::{Path, State};
-use axum::http::{HeaderValue, StatusCode, header};
+use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use rust_embed::Embed;
 
-use super::{page_response, server_error, tree_html};
+use super::{Chrome, Here, render, server_error};
 use crate::App;
 use crate::page;
 use crate::store::{Kind, PagePath};
@@ -22,8 +22,7 @@ struct Assets;
 #[derive(Template)]
 #[template(path = "page.html")]
 struct PageTemplate {
-    title: String,
-    tree: String,
+    chrome: Chrome,
     body: String,
     has_diagrams: bool,
 }
@@ -31,50 +30,52 @@ struct PageTemplate {
 #[derive(Template)]
 #[template(path = "group.html")]
 struct GroupTemplate {
-    title: String,
-    tree: String,
+    chrome: Chrome,
 }
 
 #[derive(Template)]
 #[template(path = "not_found.html")]
 struct NotFoundTemplate {
-    title: String,
-    tree: String,
+    chrome: Chrome,
 }
 
 /// `GET /`: the home page.
-pub async fn home(State(app): State<Arc<App>>) -> Response {
-    show(app, PagePath::home()).await
+pub async fn home(State(app): State<Arc<App>>, headers: HeaderMap) -> Response {
+    show(app, &headers, PagePath::home()).await
 }
 
 /// `GET /{*path}`: a page, a group, or "not found".
-pub async fn page(State(app): State<Arc<App>>, Path(path): Path<String>) -> Response {
+///
+/// A visitor gets the same "not found" for a protected page as for one that doesn't exist (R14).
+pub async fn page(State(app): State<Arc<App>>, headers: HeaderMap, Path(path): Path<String>) -> Response {
     match PagePath::parse(&path) {
-        Some(path) => show(app, path).await,
-        None => not_found(&app),
+        Some(path) => show(app, &headers, path).await,
+        None => not_found(&app, app.auth.is_owner(&headers)),
     }
 }
 
-async fn show(app: Arc<App>, path: PagePath) -> Response {
+async fn show(app: Arc<App>, headers: &HeaderMap, path: PagePath) -> Response {
+    let owner = app.auth.is_owner(headers);
     let task_app = app.clone();
-    match tokio::task::spawn_blocking(move || load(&task_app, &path)).await {
+    match tokio::task::spawn_blocking(move || load(&task_app, &path, owner)).await {
         Ok(Ok(response)) => response,
         Ok(Err(e)) => server_error(e),
         Err(e) => server_error(e),
     }
 }
 
-fn load(app: &App, path: &PagePath) -> io::Result<Response> {
-    let tree = app.tree();
-    let title = || {
-        tree.title(path)
-            .map(str::to_owned)
-            .unwrap_or_else(|| page::title_from_name(path.name().unwrap_or("home")))
-    };
+fn load(app: &App, path: &PagePath, owner: bool) -> io::Result<Response> {
+    if !owner && page::is_protected(&app.data, path)? {
+        return Ok(not_found(app, owner));
+    }
+    let title = app
+        .tree()
+        .title(path)
+        .map(str::to_owned)
+        .unwrap_or_else(|| page::title_from_name(path.name().unwrap_or("home")));
     if let Some(body) = app.renderer.cached_body(&app.data, path)? {
         let template = PageTemplate {
-            title: title(),
-            tree: tree_html(&tree, path),
+            chrome: Chrome::new(app, title, Here::Page(path), owner),
             has_diagrams: body.contains("class=\"mermaid\""),
             body,
         };
@@ -82,28 +83,19 @@ fn load(app: &App, path: &PagePath) -> io::Result<Response> {
     }
     if app.data.kind(path) == Some(Kind::Group) {
         let template = GroupTemplate {
-            title: title(),
-            tree: tree_html(&tree, path),
+            chrome: Chrome::new(app, title, Here::Group(path), owner),
         };
         return Ok(render(StatusCode::OK, &template));
     }
-    Ok(not_found(app))
+    Ok(not_found(app, owner))
 }
 
-/// The response for a page that doesn't exist.
-pub fn not_found(app: &App) -> Response {
+/// The response for a page that doesn't exist, or that a visitor may not see.
+pub fn not_found(app: &App, owner: bool) -> Response {
     let template = NotFoundTemplate {
-        title: "Not found".to_owned(),
-        tree: tree_html(&app.tree(), &PagePath::home()),
+        chrome: Chrome::new(app, "Not found", Here::Other, owner),
     };
     render(StatusCode::NOT_FOUND, &template)
-}
-
-fn render(status: StatusCode, template: &impl Template) -> Response {
-    match template.render() {
-        Ok(html) => page_response(status, html),
-        Err(e) => server_error(e),
-    }
 }
 
 /// `GET /_/static/{*file}`: CSS, JavaScript and icons embedded in the binary.

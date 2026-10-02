@@ -117,7 +117,7 @@ would change the tree or the styles in every page, so the whole wiki would be re
 | `GET /_/edit/{*path}`, `GET /_/new?parent=` | owner | editor |
 | `GET /_/dashboard` | owner | dashboard |
 | `POST /_/api/preview` | owner | Markdown in, HTML body out (R08) |
-| `PUT /_/api/page/{*path}` | owner | create or save `{ markdown, protected }` |
+| `PUT /_/api/page/{*path}` | owner | save `{ markdown, protected }`; create with `If-None-Match: *` |
 | `DELETE /_/api/page/{*path}?subpages=true` | owner | delete a page or group, and its subpages |
 | `POST /_/api/move` | owner | rename or move `{ from, to, make_public }` |
 | `POST /_/api/uploads`, `DELETE /_/api/uploads/{name}` | owner | upload, delete |
@@ -306,9 +306,9 @@ assets/          css, editor.js, sync.js, sw.js, vendored mermaid, icons, all em
 ```
 
 **Crates:** `axum`, `tokio`, `tower-http`, `comrak` with its `syntect` feature, `askama`, `serde`, `serde_json`,
-`hmac`, `sha2`, `subtle`, `rand`, `rust-embed`, `nix`, `tracing`. Templates use `askama` so the layout stays in HTML
-files that are checked when the code compiles. *Rejected: `maud`, which writes HTML as Rust macros.* Changing the look
-would mean editing Rust code.
+`hmac`, `sha2`, `subtle`, `getrandom`, `rust-embed`, `nix`, `tracing`. Templates use `askama` so the layout stays in
+HTML files that are checked when the code compiles. *Rejected: `maud`, which writes HTML as Rust macros.* Changing the
+look would mean editing Rust code.
 
 Mermaid is a large file, so a page loads it only if its body contains `class="mermaid"`.
 

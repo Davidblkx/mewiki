@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ title }} · me-wiki</title>
+<title>{{ chrome.title }} · me-wiki</title>
 <link rel="stylesheet" href="/_/static/style.css">
 <link rel="stylesheet" href="/_/custom.css">
 {% block head %}{% endblock %}
@@ -13,9 +13,10 @@
 <header class="top">
   <label for="nav-toggle" class="nav-button" title="Pages">&#9776;</label>
   <a class="brand" href="/">me-wiki</a>
+  <div class="actions">{{ chrome.actions|safe }}</div>
 </header>
 <div class="shell">
-  <nav class="tree" aria-label="Pages">{{ tree|safe }}</nav>
+  <nav class="tree" aria-label="Pages">{{ chrome.tree|safe }}</nav>
   <main>{% block main %}{% endblock %}</main>
 </div>
 </body>

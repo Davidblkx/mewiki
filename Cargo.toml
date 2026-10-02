@@ -9,13 +9,19 @@ publish = false
 askama = "0.16"
 axum = "0.8"
 comrak = { version = "0.55", default-features = false, features = ["syntect-fancy"] }
+getrandom = "0.4"
+hmac = "0.13"
 rust-embed = { version = "8", features = ["mime-guess"] }
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.11"
+subtle = "2"
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
 http-body-util = "0.1"
+serde_json = "1"
 tempfile = "3"
 tower = { version = "0.5", features = ["util"] }

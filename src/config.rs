@@ -11,6 +11,11 @@ pub struct Config {
     pub data_dir: PathBuf,
     /// The listen address, from `MEWIKI_ADDR`. Defaults to `0.0.0.0:8080`.
     pub addr: SocketAddr,
+    /// The only password, from `MEWIKI_PASSWORD`. Required (R12).
+    pub password: String,
+    /// Whether the session cookie gets the `Secure` attribute, from `MEWIKI_COOKIE_SECURE`. Only `false` turns it
+    /// off.
+    pub cookie_secure: bool,
 }
 
 impl Config {
@@ -25,6 +30,18 @@ impl Config {
                 .map_err(|e| format!("MEWIKI_ADDR {value:?} is not an address: {e}"))?,
             Err(_) => SocketAddr::from(([0, 0, 0, 0], 8080)),
         };
-        Ok(Config { data_dir, addr })
+        let password = env::var("MEWIKI_PASSWORD").unwrap_or_default();
+        if password.is_empty() {
+            return Err(
+                "MEWIKI_PASSWORD is not set; the wiki needs a password to protect pages and allow editing".into(),
+            );
+        }
+        let cookie_secure = env::var("MEWIKI_COOKIE_SECURE").map_or(true, |v| v != "false");
+        Ok(Config {
+            data_dir,
+            addr,
+            password,
+            cookie_secure,
+        })
     }
 }

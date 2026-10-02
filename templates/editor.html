@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block head %}<script src="/_/static/editor.js" defer></script>{% endblock %}
+{% block main %}
+<form class="editor" id="editor" data-path="{{ path }}" data-parent="{{ parent }}" data-creating="{{ creating }}">
+  {% if creating %}
+  <h1>New page</h1>
+  <div class="fields">
+    <label>Title <input name="title" id="title" required autocomplete="off" autofocus></label>
+    <label>Name <input name="name" id="name" required pattern="[a-z0-9][a-z0-9\-]*" autocomplete="off"
+      autocapitalize="none" spellcheck="false"></label>
+  </div>
+  <p class="hint">Address: <code id="address">{{ parent }}</code></p>
+  {% else %}
+  <h1>{{ chrome.title }}</h1>
+  {% endif %}
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" aria-selected="true" data-tab="source">Source</button>
+    <button type="button" role="tab" aria-selected="false" data-tab="preview">Preview</button>
+    <span class="spacer"></span>
+    <button type="button" id="link-button">Link</button>
+  </div>
+  <textarea id="markdown" name="markdown" spellcheck="true">{{ markdown }}</textarea>
+  <article class="page preview" id="preview" hidden></article>
+  <label class="check"><input type="checkbox" id="protected" {% if protected %}checked{% endif %}> Protected</label>
+  {% if inherited %}<p class="hint">A page above this one is protected, so this page is protected anyway.</p>{% endif %}
+  <p class="error" id="error" role="alert" hidden></p>
+  <div class="buttons"><button type="submit">Save</button><a href="{{ cancel }}">Cancel</a></div>
+</form>
+<dialog id="link-dialog">
+  <form method="dialog" class="picker">
+    <input type="search" id="link-filter" placeholder="Find a page" autocomplete="off">
+    <ul id="link-list"></ul>
+    <div class="buttons"><button value="cancel">Close</button></div>
+  </form>
+</dialog>
+{% endblock %}
