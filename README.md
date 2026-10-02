@@ -6,13 +6,14 @@ as well as a desktop, and can be read offline. [requirements.md](requirements.md
 
 ## Run it with Docker
 
-```bash
-docker build -t mewiki .
-```
+Released images for amd64 and arm64 are published to `ghcr.io/davidblkx/mewiki`:
 
 ```bash
-docker run -d --name mewiki -p 8080:8080 -v /srv/mewiki:/data -e MEWIKI_PASSWORD='a long passphrase' mewiki
+docker run -d --name mewiki -p 8080:8080 -v /srv/mewiki:/data -e MEWIKI_PASSWORD='a long passphrase' ghcr.io/davidblkx/mewiki:latest
 ```
+
+Tags follow the release: `0.1.0` for one release, `0.1` for the latest patch of that line, and `latest`. To build
+the image yourself instead, run `docker build -t mewiki .` and use `mewiki` in place of the image name.
 
 Everything the wiki stores lives in the `/data` volume, so backing it up means copying that folder. `cache/` inside it
 can be left out of backups, since the app rebuilds it.
@@ -65,3 +66,21 @@ Before committing:
 ```bash
 cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test
 ```
+
+CI runs the same checks on every push to `main` and on pull requests.
+
+## Release
+
+1. Set the new version in `Cargo.toml`, run `cargo check` so `Cargo.lock` follows, and commit both.
+2. Tag that commit and push the tag:
+
+   ```bash
+   git tag v0.2.0 && git push origin v0.2.0
+   ```
+
+The Release workflow refuses a tag that doesn't match `Cargo.toml`. It then runs the checks, builds the image on
+native amd64 and arm64 runners, publishes the version tags (and `latest`, except for prereleases such as
+`v0.2.0-rc.1`), and creates the GitHub Release with generated notes.
+
+GitHub makes a new package private the first time it is published. To let anyone pull it without logging in, open
+the package's settings on GitHub once and change its visibility to public.
