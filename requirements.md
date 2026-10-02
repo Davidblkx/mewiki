@@ -23,7 +23,10 @@ quick to edit and read from a desktop or a phone — and to read offline.**
   stays portable and editable with any tool.*
 - **R02** Every page shares one look, set by a central stylesheet. The owner can add custom CSS from the dashboard,
   and it applies to every page.
-- **R03** Pages read well on desktop and mobile browsers.
+- **R03** Pages read well on desktop and mobile browsers. On a desktop a page uses the full width beside the tree. A
+  read mode, switched on per page, hides the tree and centres the page: text at about 75 characters a line, while
+  code blocks, tables and diagrams can spread to 100rem. *Why: full width suits wide code and tables, but long lines
+  of prose are hard to read.*
 - **R04** The wiki can be installed as a PWA. Every page a reader opens is saved on their device and can be read
   offline afterwards. A sync button in the dashboard saves every page at once, protected ones included. Offline
   covers page text only: images and other uploaded assets, the editor and the dashboard need a connection. *Why:

@@ -1,6 +1,6 @@
 [package]
 name = "mewiki"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 description = "A personal, self-hosted wiki that keeps its pages as Markdown files on disk"
 publish = false

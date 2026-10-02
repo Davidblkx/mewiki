@@ -357,7 +357,7 @@ Each step runs and is tested before the next one starts.
 | --- | --- |
 | R01 | Rendering |
 | R02 | Rendering (class-based highlighting), `config/custom.css` |
-| R03 | Layout template and CSS, which have no fixed-width elements |
+| R03 | Layout template and CSS; read mode is a CSS-only checkbox toggle on pages, so it works offline |
 | R04 | Offline |
 | R05 | Data folder, the tree |
 | R06, R07 | Changing pages |

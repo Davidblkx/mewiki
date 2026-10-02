@@ -3,4 +3,6 @@
 <script src="/_/static/vendor/mermaid.min.js" defer></script>
 <script src="/_/static/diagrams.js" defer></script>
 {% endif %}{% endblock %}
+{% block read_toggle %}<input type="checkbox" id="read-toggle" class="read-toggle">{% endblock %}
+{% block read_button %}<label for="read-toggle" class="read-button">Read mode</label>{% endblock %}
 {% block main %}<article class="page">{{ body|safe }}</article>{% endblock %}

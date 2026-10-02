@@ -75,6 +75,27 @@ async fn loads_mermaid_only_on_pages_with_diagrams() {
 }
 
 #[tokio::test]
+async fn offers_read_mode_on_pages_only() {
+    let wiki = wiki();
+    let (_, page) = wiki.get("/mushroom").await;
+    let (_, group) = wiki.get("/recipes").await;
+    let (_, missing) = wiki.get("/missing").await;
+    let (_, editor) = wiki.owner_get("/_/edit/mushroom").await;
+
+    assert!(
+        page.contains("<input type=\"checkbox\" id=\"read-toggle\" class=\"read-toggle\">"),
+        "{page}"
+    );
+    assert!(
+        page.contains("<label for=\"read-toggle\" class=\"read-button\">Read mode</label>"),
+        "{page}"
+    );
+    for other in [group, missing, editor] {
+        assert!(!other.contains("read-toggle"), "{other}");
+    }
+}
+
+#[tokio::test]
 async fn serves_a_group_as_a_blank_page() {
     let (response, body) = wiki().get("/recipes").await;
 

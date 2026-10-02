@@ -14,11 +14,12 @@
 {% block head %}{% endblock %}
 </head>
 <body>
+{% block read_toggle %}{% endblock %}
 <input type="checkbox" id="nav-toggle" class="nav-toggle">
 <header class="top">
   <label for="nav-toggle" class="nav-button" title="Pages">&#9776;</label>
   <a class="brand" href="/">me-wiki</a>
-  <div class="actions">{{ chrome.actions|safe }}</div>
+  <div class="actions">{% block read_button %}{% endblock %}{{ chrome.actions|safe }}</div>
 </header>
 <div class="shell">
   <nav class="tree" aria-label="Pages">{{ chrome.tree|safe }}</nav>
