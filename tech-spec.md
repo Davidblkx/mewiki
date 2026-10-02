@@ -47,8 +47,9 @@ reserved for the home page.
 **The title** is the page's first `# heading`. Without one, the name is used: `wild-garlic` becomes "Wild garlic".
 That way no metadata is needed for the title.
 
-**The home page** (`index.md`) can be edited and protected, but never renamed, moved or deleted. Top-level pages sit
-next to it, not under it. Protecting it therefore protects only `/`.
+**The home page** (`index.md`) can be edited and protected, but never renamed, moved or deleted. Startup creates it,
+containing `# MEWIKI`, whenever it's missing, so a new wiki has a page to edit and to add pages under. Top-level pages
+sit next to it, not under it. Protecting it therefore protects only `/`.
 
 ### Page metadata
 

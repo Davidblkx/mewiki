@@ -15,6 +15,10 @@ use auth::Auth;
 use render::Renderer;
 use store::{DataDir, Tree};
 
+/// The home page written at startup when `pages/index.md` is missing, so a new wiki has a page to edit and to add
+/// pages under.
+pub const HOME_PAGE: &str = "# MEWIKI\n";
+
 /// Everything the request handlers share.
 pub struct App {
     /// The data folder.
@@ -30,8 +34,8 @@ pub struct App {
 }
 
 impl App {
-    /// Creates the data folder's missing parts, removes temporary files a crash left behind, loads or creates the
-    /// secret key, and scans the tree.
+    /// Creates the data folder's missing parts, removes temporary files a crash left behind, creates the home page
+    /// when there is none, loads or creates the secret key, and scans the tree.
     ///
     /// `cookie_secure` adds the `Secure` attribute to session cookies.
     pub fn new(data: DataDir, password: &str, cookie_secure: bool) -> io::Result<Arc<Self>> {
@@ -39,6 +43,11 @@ impl App {
         let removed = store::remove_temp_files(&data)?;
         if removed > 0 {
             tracing::warn!("removed {removed} temporary files left by an interrupted write");
+        }
+        let home = data.page_file(&store::PagePath::home());
+        if !home.exists() {
+            store::write_atomic(&home, HOME_PAGE.as_bytes())?;
+            tracing::info!("created the home page at {}", home.display());
         }
         let secret = Auth::load_or_create_secret(&data.config())?;
         let tree = Tree::scan(&data)?;

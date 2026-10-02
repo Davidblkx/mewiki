@@ -16,6 +16,26 @@ fn wiki() -> Wiki {
 }
 
 #[tokio::test]
+async fn creates_a_home_page_for_a_new_wiki_that_the_owner_can_edit() {
+    let wiki = Wiki::with_pages(&[]);
+
+    let (response, body) = wiki.owner_get("/").await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(wiki.page_source("index.md"), "# MEWIKI\n");
+    assert!(body.contains("<h1>MEWIKI</h1>"), "{body}");
+    assert!(body.contains("href=\"/_/edit\">Edit</a>"), "{body}");
+    assert!(body.contains("href=\"/_/new?parent=/\">New page</a>"), "{body}");
+}
+
+#[tokio::test]
+async fn keeps_an_existing_home_page_at_startup() {
+    let wiki = Wiki::with_pages(&[("index.md", "# Mine")]);
+
+    assert_eq!(wiki.page_source("index.md"), "# Mine");
+}
+
+#[tokio::test]
 async fn serves_the_home_page() {
     let (response, body) = wiki().get("/").await;
 
