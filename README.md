@@ -82,5 +82,5 @@ The Release workflow refuses a tag that doesn't match `Cargo.toml`. It then runs
 native amd64 and arm64 runners, publishes the version tags (and `latest`, except for prereleases such as
 `v0.2.0-rc.1`), and creates the GitHub Release with generated notes.
 
-GitHub makes a new package private the first time it is published. To let anyone pull it without logging in, open
-the package's settings on GitHub once and change its visibility to public.
+The image is linked to this repository, so it is public like the repository and pulls without logging in. If a pull
+ever asks for credentials, check the package's visibility in its settings on GitHub.
